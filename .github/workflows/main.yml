@@ -24,7 +24,6 @@ jobs:
 
       - name: Install dependencies and JMeter
         run: |
-          # Upgrade pip and install Python dependencies
           
           # Install JMeter
           sudo apt-get update
@@ -54,34 +53,21 @@ jobs:
             -Jduration=${{ env.JMETER_DURATION }} \
             -l results.csv
 
-      # Get AWS credentials using the Docker image
-      - name: Get AWS credentials
-        id: get_credentials
-        run: |
-          ROLE_ARN="arn:aws:iam::509283902058:role/digital_verification_performance_testing/dvpt_deploy_role"
-          CREDENTIALS=$(curl -s -X POST \
-            -d "client_id=${{ secrets.OKTA_CLIENT_ID }}" \
-            -d "client_secret=${{ secrets.OKTA_CLIENT_SECRET }}" \
-            "https://docker.deere.com/isgdevops/get-aws-credentials:2?role_arn=$ROLE_ARN")
-          echo "AWS_ACCESS_KEY_ID=$(echo $CREDENTIALS | jq -r .AccessKeyId)" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=$(echo $CREDENTIALS | jq -r .SecretAccessKey)" >> $GITHUB_ENV
-          echo "AWS_SESSION_TOKEN=$(echo $CREDENTIALS | jq -r .SessionToken)" >> $GITHUB_ENV
-
-      # Configure AWS Credentials
+      # Configure AWS Credentials to upload assets to S3
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-southeast-1
-          aws-session-token: ${{ env.AWS_SESSION_TOKEN }}
 
       # Upload JMeter Results to S3
       - name: Upload JMeter Results to S3
         run: |
+          sudo yum -y install jq
           VAR2=$(date +%s)
           VAR1="jmeterResultsAt"
           VAR3=".csv"
           VAR4="$VAR1$VAR2$VAR3"
           mv results.csv $VAR4
-          aws s3 cp $VAR4 s3://dvpt-performance-qual --region ap-southeast-1 --delete
+          aws s3 cp $VAR4 s3://tesing-jmeter --region us-east-1 --delete
