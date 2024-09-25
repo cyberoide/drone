@@ -14,13 +14,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Run JMeter tests in CLI mode
-        uses: docker://justb4/jmeter
-        env:
-          client_id: ${{ secrets.CLIENT_ID_JMETER }}
-          client_secret: ${{ secrets.CLIENT_SECRET_JMETER }}
+      - name: Set up JMeter
         run: |
-          jmeter -n -Jclient_id_jmeter=${{ secrets.CLIENT_ID_JMETER }} -Jclient_secret_jmeter=${{ secrets.CLIENT_SECRET_JMETER }} -t performance_test.jmx -l results.csv
+          docker run --rm \
+            -e client_id=${{ secrets.CLIENT_ID_JMETER }} \
+            -e client_secret=${{ secrets.CLIENT_SECRET_JMETER }} \
+            -v ${{ github.workspace }}:/jmeter \
+            justb4/jmeter \
+            jmeter -n -Jclient_id_jmeter=${{ secrets.CLIENT_ID_JMETER }} -Jclient_secret_jmeter=${{ secrets.CLIENT_SECRET_JMETER }} -t /jmeter/performance_test.jmx -l /jmeter/results.csv
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
