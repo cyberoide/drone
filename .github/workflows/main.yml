@@ -1,10 +1,9 @@
 name: Performance Testing
 
-
 on:
   push:
     branches:
-      - main
+      - feature/prashanth-perf-test
 
 jobs:
   performance_test:
@@ -15,7 +14,6 @@ jobs:
       JMETER_PATH: './performance_test.jmx'
       WORKING_DIRECTORY: Performance
 
-   
     steps:
       - uses: actions/checkout@v3
 
@@ -24,18 +22,54 @@ jobs:
         with:
           python-version: 3.11
 
-      - name: Setup-Jmeter
+      - name: Install dependencies and JMeter
         run: |
+          # Upgrade pip and install Python dependencies
+
+          
+          # Install JMeter
           sudo apt-get update
           sudo apt install curl -y
           sudo apt install -y default-jdk
-          sudo curl -O https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.5.tgz
-          sudo tar -xvf apache-jmeter-5.5.tgz
-          cd $GITHUB_WORKSPACE/apache-jmeter-5.5/lib && sudo curl -O https://repo1.maven.org/maven2/kg/apc/cmdrunner/2.2.1/cmdrunner-2.2.1.jar
-          cd $GITHUB_WORKSPACE/apache-jmeter-5.5/lib/ext && sudo curl -O https://repo1.maven.org/maven2/kg/apc/jmeter-plugins-manager/1.6/jmeter-plugins-manager-1.6.jar
-          cd $GITHUB_WORKSPACE/apache-jmeter-5.5/lib && sudo java -jar cmdrunner-2.2.1.jar --tool org.jmeterplugins.repository.PluginManagerCMD install jpgc-synthesis,jpgc-graphs-basic,jpgc-graphs-additional,jpgc-cmd,jpgc-graphs-dist,jpgc-standard,jpgc-casutg
+          curl -O https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.5.tgz
+          tar -xvf apache-jmeter-5.5.tgz
+          
+          # Install JMeter Plugins
+          cd $GITHUB_WORKSPACE/apache-jmeter-5.5/lib
+          curl -O https://repo1.maven.org/maven2/kg/apc/cmdrunner/2.2.1/cmdrunner-2.2.1.jar
+          cd $GITHUB_WORKSPACE/apache-jmeter-5.5/lib/ext
+          curl -O https://repo1.maven.org/maven2/kg/apc/jmeter-plugins-manager/1.6/jmeter-plugins-manager-1.6.jar
+          cd $GITHUB_WORKSPACE/apache-jmeter-5.5/lib
+          sudo java -jar cmdrunner-2.2.1.jar --tool org.jmeterplugins.repository.PluginManagerCMD install jpgc-synthesis,jpgc-graphs-basic,jpgc-graphs-additional,jpgc-cmd,jpgc-graphs-dist,jpgc-standard,jpgc-casutg
 
       - name: Install PerfMon Plugin
         run: |
           cd $GITHUB_WORKSPACE/apache-jmeter-5.5/lib
           sudo java -jar cmdrunner-2.2.1.jar --tool org.jmeterplugins.repository.PluginManagerCMD install jpgc-perfmon
+
+      - name: Run JMeter Performance Test
+        run: |
+          $GITHUB_WORKSPACE/apache-jmeter-5.5/bin/jmeter -n \
+            -t ${{ env.JMETER_PATH }} \
+            -Jthreads=${{ env.JMETER_THREADS }} \
+            -Jduration=${{ env.JMETER_DURATION }} \
+            -l results.csv
+
+      # Configure AWS Credentials to upload assets to S3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-southeast-1
+
+      # Upload JMeter Results to S3
+      - name: Upload JMeter Results to S3
+        run: |
+          sudo yum -y install jq
+          VAR2=$(date +%s)
+          VAR1="jmeterResultsAt"
+          VAR3=".csv"
+          VAR4="$VAR1$VAR2$VAR3"
+          mv results.csv $VAR4
+          aws s3 cp $VAR4 s3://dvpt-performance-qual --region ap-southeast-1 --delete
