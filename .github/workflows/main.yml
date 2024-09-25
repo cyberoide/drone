@@ -22,7 +22,7 @@ jobs:
 
       - name: Run JMeter tests
         run: |
-          jmeter -Jclient_id_jmeter=${{ secrets.CLIENT_ID_JMETER }} -Jclient_secret_jmeter=${{ secrets.CLIENT_SECRET_JMETER }} -n -t performance_test.jmx
+          jmeter -n -Jclient_id_jmeter=${{ secrets.CLIENT_ID_JMETER }} -Jclient_secret_jmeter=${{ secrets.CLIENT_SECRET_JMETER }} -t performance_test.jmx -l results.csv
 
       # Use AWS CLI action to configure AWS credentials instead of private image
       - name: Configure AWS Credentials
