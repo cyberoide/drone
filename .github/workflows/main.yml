@@ -69,4 +69,4 @@ jobs:
           VAR3=".csv"
           VAR4="$VAR1$VAR2$VAR3"
           mv results.csv $VAR4
-          aws s3 cp $VAR4 s3://tesing-jmeter --region us-east-1 --delete
+          aws s3 cp $VAR4 s3://tesing-jmeter --region us-east-1 
