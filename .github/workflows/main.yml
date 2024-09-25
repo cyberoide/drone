@@ -19,8 +19,17 @@ jobs:
         env:
           client_id: ${{ secrets.CLIENT_ID_JMETER }}
           client_secret: ${{ secrets.CLIENT_SECRET_JMETER }}
+
+      - name: Run JMeter tests
         run: |
           jmeter -Jclient_id_jmeter=${{ secrets.CLIENT_ID_JMETER }} -Jclient_secret_jmeter=${{ secrets.CLIENT_SECRET_JMETER }} -n -t performance_test.jmx
+
+      - name: Get AWS credentials
+        uses: docker://docker.deere.com/isgdevops/get-aws-credentials:2
+        with:
+          client_id: ${{ secrets.OKTA_CLIENT_ID }}
+          client_secret: ${{ secrets.OKTA_CLIENT_SECRET }}
+          role_arn: arn:aws:iam::509283902058:role/digital_verification_performance_testing/dvpt_deploy_role
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
