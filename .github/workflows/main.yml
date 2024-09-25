@@ -64,7 +64,6 @@ jobs:
       # Upload JMeter Results to S3
       - name: Upload JMeter Results to S3
         run: |
-          sudo yum -y install jq
           VAR2=$(date +%s)
           VAR1="jmeterResultsAt"
           VAR3=".csv"
