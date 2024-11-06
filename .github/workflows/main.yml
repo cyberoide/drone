@@ -34,16 +34,11 @@ jobs:
         run: |
           # [JMeter test execution code here]
 
-      - name: Configure AWS Credentials
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - name: Configure AWS Credentials with OIDC
         uses: aws-actions/configure-aws-credentials@v1
         with:
           role-to-assume: arn:aws:iam::509283902058:role/digital_verification_performance_testing/dvpt_deploy_role
           aws-region: us-east-1
-          role-session-name: github-actions
-          role-duration-seconds: 3600
 
       - name: Upload Assets to S3
         run: |
