@@ -22,7 +22,7 @@ jobs:
 
   pr-verify:
 
-    runs-on: deere-ubuntu-latest
+    runs-on: ubuntu-latest
 
  
 
