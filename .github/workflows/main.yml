@@ -1,93 +1,51 @@
 name: PR Verify
 
- 
-
 on:
-
   push:
-
     branches:
-
       - main
-
   pull_request:
-
     branches:
-
       - main
-
- 
 
 jobs:
-
   pr-verify:
-
     runs-on: ubuntu-latest
 
- 
-
     env:
-
       CLIENT_ID: ${{ secrets.CLIENT_ID_JMETER }}
-
       CLIENT_SECRET: ${{ secrets.CLIENT_SECRET_JMETER }}
 
- 
-
     steps:
-
       - name: Checkout code
-
         uses: actions/checkout@v3
 
- 
-
       - name: Run JMeter Tests
-
         run: |
-
           docker run --rm \
-
-            -e CLIENT_ID=${{ secrets.CLIENT_ID_JMETER }} \
-
-            -e CLIENT_SECRET=${{ secrets.CLIENT_SECRET_JMETER }} \
-
+            -e CLIENT_ID="${{ secrets.CLIENT_ID_JMETER }}" \
+            -e CLIENT_SECRET="${{ secrets.CLIENT_SECRET_JMETER }}" \
+            -v "${{ github.workspace }}:/jmeter" \  # Mount current workspace to access test file
             justb4/jmeter \
-
-            jmeter -Jclient_id_jmeter=${{ secrets.CLIENT_ID_JMETER }} -Jclient_secret_jmeter=${{ secrets.CLIENT_SECRET_JMETER }} -n -t performance_test.jmx
-
- 
+            -n -t /jmeter/performance_test.jmx \
+            -Jclient_id_jmeter="${{ secrets.CLIENT_ID_JMETER }}" \
+            -Jclient_secret_jmeter="${{ secrets.CLIENT_SECRET_JMETER }}" \
+            -l /jmeter/results.csv
 
       - name: Get AWS Credentials
-
         uses: aws-actions/configure-aws-credentials@v1
-
         with:
-
           role-to-assume: arn:aws:iam::509283902058:role/digital_verification_performance_testing/dvpt_deploy_role
-
           aws-region: us-east-1
-
           role-session-name: github-actions
-
           role-duration-seconds: 3600
 
- 
-
       - name: Upload Assets to S3
-
         run: |
-
           sudo apt-get -y install jq
-
           VAR2=$(date +%s)
-
           VAR1="jmeterResultsAt"
-
           VAR3=".csv"
-
           VAR4="$VAR1$VAR2$VAR3"
-
           mv results.csv $VAR4
-
           aws s3 cp $VAR4 s3://dvpt-performance-qual
