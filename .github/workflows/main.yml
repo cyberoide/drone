@@ -35,7 +35,7 @@ jobs:
           # [JMeter test execution code here]
 
       - name: Configure AWS Credentials with OIDC
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v3
         with:
           role-to-assume: arn:aws:iam::509283902058:role/digital_verification_performance_testing/dvpt_deploy_role
           aws-region: us-east-1
