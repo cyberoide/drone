@@ -8,6 +8,9 @@ on:
 jobs:
   performance_test:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     env:
       JMETER_THREADS: 10
       JMETER_DURATION: 60
