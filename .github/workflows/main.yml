@@ -1,72 +1,93 @@
-name: Performance Testing
+name: PR Verify
+
+ 
 
 on:
+
   push:
+
     branches:
+
       - main
 
+  pull_request:
+
+    branches:
+
+      - main
+
+ 
+
 jobs:
-  performance_test:
-    runs-on: ubuntu-latest
+
+  pr-verify:
+
+    runs-on: deere-ubuntu-latest
+
+ 
+
     env:
-      JMETER_THREADS: 10
-      JMETER_DURATION: 60
-      JMETER_PATH: './performance_test.jmx'
-      WORKING_DIRECTORY: Performance
+
+      CLIENT_ID: ${{ secrets.CLIENT_ID_JMETER }}
+
+      CLIENT_SECRET: ${{ secrets.CLIENT_SECRET_JMETER }}
+
+ 
 
     steps:
-      - uses: actions/checkout@v3
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v4
+      - name: Checkout code
+
+        uses: actions/checkout@v3
+
+ 
+
+      - name: Run JMeter Tests
+
+        run: |
+
+          docker run --rm \
+
+            -e CLIENT_ID=${{ secrets.CLIENT_ID_JMETER }} \
+
+            -e CLIENT_SECRET=${{ secrets.CLIENT_SECRET_JMETER }} \
+
+            justb4/jmeter \
+
+            jmeter -Jclient_id_jmeter=${{ secrets.CLIENT_ID_JMETER }} -Jclient_secret_jmeter=${{ secrets.CLIENT_SECRET_JMETER }} -n -t performance_test.jmx
+
+ 
+
+      - name: Get AWS Credentials
+
+        uses: aws-actions/configure-aws-credentials@v1
+
         with:
-          python-version: 3.11
 
-      - name: Install dependencies and JMeter
-        run: |
-          
-          # Install JMeter
-          sudo apt-get update
-          sudo apt install curl -y
-          sudo apt install -y default-jdk
-          curl -O https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.5.tgz
-          tar -xvf apache-jmeter-5.5.tgz
-          
-          # Install JMeter Plugins
-          cd $GITHUB_WORKSPACE/apache-jmeter-5.5/lib
-          curl -O https://repo1.maven.org/maven2/kg/apc/cmdrunner/2.2.1/cmdrunner-2.2.1.jar
-          cd $GITHUB_WORKSPACE/apache-jmeter-5.5/lib/ext
-          curl -O https://repo1.maven.org/maven2/kg/apc/jmeter-plugins-manager/1.6/jmeter-plugins-manager-1.6.jar
-          cd $GITHUB_WORKSPACE/apache-jmeter-5.5/lib
-          sudo java -jar cmdrunner-2.2.1.jar --tool org.jmeterplugins.repository.PluginManagerCMD install jpgc-synthesis,jpgc-graphs-basic,jpgc-graphs-additional,jpgc-cmd,jpgc-graphs-dist,jpgc-standard,jpgc-casutg
+          role-to-assume: arn:aws:iam::509283902058:role/digital_verification_performance_testing/dvpt_deploy_role
 
-      - name: Install PerfMon Plugin
-        run: |
-          cd $GITHUB_WORKSPACE/apache-jmeter-5.5/lib
-          sudo java -jar cmdrunner-2.2.1.jar --tool org.jmeterplugins.repository.PluginManagerCMD install jpgc-perfmon
-
-      - name: Run JMeter Performance Test
-        run: |
-          $GITHUB_WORKSPACE/apache-jmeter-5.5/bin/jmeter -n \
-            -t ${{ env.JMETER_PATH }} \
-            -Jthreads=${{ env.JMETER_THREADS }} \
-            -Jduration=${{ env.JMETER_DURATION }} \
-            -l results.csv
-
-      # Configure AWS Credentials to upload assets to S3
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      # Upload JMeter Results to S3
-      - name: Upload JMeter Results to S3
+          role-session-name: github-actions
+
+          role-duration-seconds: 3600
+
+ 
+
+      - name: Upload Assets to S3
+
         run: |
+
+          sudo apt-get -y install jq
+
           VAR2=$(date +%s)
+
           VAR1="jmeterResultsAt"
+
           VAR3=".csv"
+
           VAR4="$VAR1$VAR2$VAR3"
+
           mv results.csv $VAR4
-          aws s3 cp $VAR4 s3://tesing-jmeter --region us-east-1 
+
+          aws s3 cp $VAR4 s3://dvpt-performance-qual
